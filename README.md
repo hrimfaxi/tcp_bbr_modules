@@ -1,4 +1,6 @@
-# 两个TCP拥塞算法BBR变体，为zen-kernel作补丁
+# TCP拥塞算法BBR变体
+
+移植到了arch的`linux-zen`或Ubuntu的`liquorix`内核。
 
 ## 编译&运行
 
@@ -8,6 +10,7 @@
 sudo make dkms
 sudo modprobe tcp_nanqinlang
 sudo modprobe tcp_tsunami
+sudo modprobe tcp_bbrplus
 
 # 试用nanqinlang
 sudo sysctl -w net.ipv4.tcp_congestion_control=nanqinlang
@@ -15,7 +18,10 @@ sudo sysctl -w net.ipv4.tcp_congestion_control=nanqinlang
 # 试用tsunami
 sudo sysctl -w net.ipv4.tcp_congestion_control=tsunami
 
-ss -tin|grep -E 'nanqinlang|tsunami'
+# 试用bbrplus
+sudo sysctl -w net.ipv4.tcp_congestion_control=bbrplus
+
+ss -tin|grep -E 'nanqinlang|tsunami|bbrplus'
 ```
 
 ## 固化到系统
@@ -23,6 +29,7 @@ ss -tin|grep -E 'nanqinlang|tsunami'
 ```
 sudo tee -a /etc/modules-load.d/tcp-cong.conf <<< tcp_nanqinlang
 sudo tee -a /etc/modules-load.d/tcp-cong.conf <<< tcp_tsunami
+sudo tee -a /etc/modules-load.d/tcp-cong.conf <<< tcp_bbrplus
 ```
 
 然后任选nanqinlang或tsunami作为拥塞算法:
@@ -34,6 +41,11 @@ sudo tee -a /etc/sysctl.conf <<< "net.ipv4.tcp_congestion_control = nanqinlang"
 或
 ```
 sudo tee -a /etc/sysctl.conf <<< "net.ipv4.tcp_congestion_control = tsunami"
+```
+
+或
+```
+sudo tee -a /etc/sysctl.conf <<< "net.ipv4.tcp_congestion_control = bbrplus"
 ```
 
 成功后，重启即可:
