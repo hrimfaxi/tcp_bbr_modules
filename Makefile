@@ -1,4 +1,4 @@
-obj-m:=tcp_nanqinlang.o tcp_tsunami.o
+obj-m:=tcp_nanqinlang.o tcp_tsunami.o tcp_bbrplus.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
