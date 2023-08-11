@@ -1,10 +1,33 @@
 # TCP拥塞算法BBR变体
 
-移植到了arch的`linux-zen`或Ubuntu的`liquorix`内核。
+[liquorix内核介绍](https://www.sysgeek.cn/liquorix-kernel/)
+
+移植了以下BBR算法变体到arch的`linux-zen`或Ubuntu的`liquorix`内核:
+
+* [nanqinlang](https://github.com/tcp-nanqinlang)
+* [tsunami](https://github.com/KozakaiAya/TCP_BBR/blob/master/code/v6.1/tcp_tsunami.c)
+* [bbrplus](https://github.com/cx9208/bbrplus)
+
+## 选择算法
+
+根据[论文](https://arxiv.org/abs/1909.03673)的评测，应该选择`bbrplus`:
+
+```
+BBRPlus is an good improvement to BBR and is highly recommended to be applied in this paper
+```
+
+你也可以根据自己需要选用其它算法。
 
 ## 编译&运行
 
-确保你的系统有`dkms`，内核构建环境和至少有内核头文件。
+以Ubuntu 22.04.03 LTS amd64为例：
+确保你的系统有`dkms`，内核构建环境和至少有内核头文件。(Ubuntu下叫 `linux-headers-liquorix-amd64`)
+
+```
+sudo apt install -y git build-essential dkms linux-headers-liquorix-amd64
+git clone https://github.com/hrimfaxi/tcp_bbr_modules
+cd tcp_bbr_modules
+```
 
 ```
 sudo make dkms
@@ -32,18 +55,19 @@ sudo tee -a /etc/modules-load.d/tcp-cong.conf <<< tcp_tsunami
 sudo tee -a /etc/modules-load.d/tcp-cong.conf <<< tcp_bbrplus
 ```
 
-然后任选nanqinlang或tsunami作为拥塞算法:
+然后任选一个算法作为拥塞算法:
 
+nanqinlang:
 ```
 sudo tee -a /etc/sysctl.conf <<< "net.ipv4.tcp_congestion_control = nanqinlang"
 ```
 
-或
+tsunami:
 ```
 sudo tee -a /etc/sysctl.conf <<< "net.ipv4.tcp_congestion_control = tsunami"
 ```
 
-或
+bbrplus:
 ```
 sudo tee -a /etc/sysctl.conf <<< "net.ipv4.tcp_congestion_control = bbrplus"
 ```
