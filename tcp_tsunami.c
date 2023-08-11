@@ -300,6 +300,30 @@ static u32 bbr_min_tso_segs(struct sock *sk)
 	return sk->sk_pacing_rate < (bbr_min_tso_rate >> 3) ? 1 : 2;
 }
 
+#ifdef CONFIG_ZEN_INTERACTIVE
+/* Return the number of segments BBR would like in a TSO/GSO skb, given
+ * a particular max gso size as a constraint.
+ */
+static u32 bbr_tso_segs_generic(struct sock *sk, unsigned int mss_now,
+								u32 gso_max_size)
+{
+	u32 segs;
+	u64 bytes;
+
+	/* Budget a TSO/GSO brust size allowance based on bw (pacing_rate). */
+	bytes = sk->sk_pacing_rate >> sk->sk_pacing_shift;
+
+	bytes = min_t(u32, bytes, gso_max_size - 1 - MAX_TCP_HEADER);
+	segs = max_t(u32, div_u64(bytes, mss_now), bbr_min_tso_segs(sk));
+	return segs;
+}
+
+static u32 bbr_tso_segs(struct sock *sk, unsigned int mss_now)
+{
+	return bbr_tso_segs_generic(sk, mss_now, sk->sk_gso_max_size);
+}
+#endif
+
 static u32 bbr_tso_segs_goal(struct sock *sk)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
@@ -619,7 +643,7 @@ static void bbr_reset_probe_bw_mode(struct sock *sk)
 	struct bbr *bbr = inet_csk_ca(sk);
 
 	bbr->mode = BBR_PROBE_BW;
-	bbr->cycle_idx = CYCLE_LEN - 1 - prandom_u32_max(bbr_cycle_rand);
+	bbr->cycle_idx = CYCLE_LEN - 1 - get_random_u32_below(bbr_cycle_rand);
 	bbr_advance_cycle_phase(sk);	/* flip to next phase of gain cycle */
 }
 
@@ -1150,7 +1174,11 @@ static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
 	.undo_cwnd	= bbr_undo_cwnd,
 	.cwnd_event	= bbr_cwnd_event,
 	.ssthresh	= bbr_ssthresh,
+#ifdef CONFIG_ZEN_INTERACTIVE
+	.tso_segs	= bbr_tso_segs,
+#else
 	.min_tso_segs	= bbr_min_tso_segs,
+#endif
 	.get_info	= bbr_get_info,
 	.set_state	= bbr_set_state,
 };
