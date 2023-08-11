@@ -205,9 +205,17 @@ static const u32 bbr_extra_acked_max_us = 100 * 1000;
 /* Each cycle, try to hold sub-unity gain until inflight <= BDP. */
 static const bool bbr_drain_to_target = true;   /* default: enabled */
 
-extern bool tcp_snd_wnd_test(const struct tcp_sock *tp,
+static bool tcp_snd_wnd_test(const struct tcp_sock *tp,
                  const struct sk_buff *skb,
-                 unsigned int cur_mss);
+                 unsigned int cur_mss)
+{
+	u32 end_seq = TCP_SKB_CB(skb)->end_seq;
+
+	if (skb->len > cur_mss)
+		end_seq = TCP_SKB_CB(skb)->seq + cur_mss;
+
+	return !after(end_seq, tcp_wnd_end(tp));
+}
 
 /* Do we estimate that STARTUP filled the pipe? */
 static bool bbr_full_bw_reached(const struct sock *sk)
@@ -244,7 +252,7 @@ static void bbr_drain_to_target_cycling(struct sock *sk,
     if (elapsed_us > bbr->cycle_len * bbr->min_rtt_us) {
         /* Start a new PROBE_BW probing cycle of [2 to 8] x min_rtt. */
         bbr->cycle_mstamp = tp->delivered_mstamp;
-        bbr->cycle_len = CYCLE_LEN - prandom_u32_max(bbr_cycle_rand);
+        bbr->cycle_len = CYCLE_LEN - get_random_u32_below(bbr_cycle_rand);
         bbr_set_cycle_idx(sk, BBR_BW_PROBE_UP);  /* probe bandwidth */
         return;
     }
@@ -369,23 +377,55 @@ static void bbr_set_pacing_rate(struct sock *sk, u32 bw, int gain)
         sk->sk_pacing_rate = rate;
 }
 
+/* override sysctl_tcp_min_tso_segs */
+static u32 bbr_min_tso_segs(struct sock *sk)
+{
+	return sk->sk_pacing_rate < (bbr_min_tso_rate >> 3) ? 1 : 2;
+}
+
+#ifdef CONFIG_ZEN_INTERACTIVE
+/* Return the number of segments BBR would like in a TSO/GSO skb, given
+ * a particular max gso size as a constraint.
+ */
+static u32 bbr_tso_segs_generic(struct sock *sk, unsigned int mss_now,
+								u32 gso_max_size)
+{
+	u32 segs;
+	u64 bytes;
+
+	/* Budget a TSO/GSO brust size allowance based on bw (pacing_rate). */
+	bytes = sk->sk_pacing_rate >> sk->sk_pacing_shift;
+
+	bytes = min_t(u32, bytes, gso_max_size - 1 - MAX_TCP_HEADER);
+	segs = max_t(u32, div_u64(bytes, mss_now), bbr_min_tso_segs(sk));
+	return segs;
+}
+
+static u32 bbr_tso_segs(struct sock *sk, unsigned int mss_now)
+{
+	return bbr_tso_segs_generic(sk, mss_now, sk->sk_gso_max_size);
+}
+#endif
+
 /* Return count of segments we want in the skbs we send, or 0 for default. */
 static u32 bbr_tso_segs_goal(struct sock *sk)
 {
-    struct bbr *bbr = inet_csk_ca(sk);
+	struct bbr *bbr = inet_csk_ca(sk);
 
-    return bbr->tso_segs_goal;
+	return bbr->tso_segs_goal;
 }
 
 static void bbr_set_tso_segs_goal(struct sock *sk)
 {
-    struct tcp_sock *tp = tcp_sk(sk);
-    struct bbr *bbr = inet_csk_ca(sk);
-    u32 min_segs;
+	struct tcp_sock *tp = tcp_sk(sk);
+	struct bbr *bbr = inet_csk_ca(sk);
+	u32 segs, bytes;
 
-    min_segs = sk->sk_pacing_rate < (bbr_min_tso_rate >> 3) ? 1 : 2;
-    bbr->tso_segs_goal = min(tcp_tso_autosize(sk, tp->mss_cache, min_segs),
-                 0x7FU);
+	bytes = min_t(unsigned long,
+		      sk->sk_pacing_rate >> READ_ONCE(sk->sk_pacing_shift),
+		      GSO_LEGACY_MAX_SIZE - 1 - MAX_TCP_HEADER);
+	segs = max_t(u32, bytes / tp->mss_cache, bbr_min_tso_segs(sk));
+	bbr->tso_segs_goal = min(segs, 0x7FU);
 }
 
 /* Save "last known good" cwnd so we can restore it after losses or PROBE_RTT */
@@ -663,7 +703,7 @@ static void bbr_reset_probe_bw_mode(struct sock *sk)
     bbr->mode = BBR_PROBE_BW;
     bbr->pacing_gain = BBR_UNIT;
     bbr->cwnd_gain = bbr_cwnd_gain;
-    bbr->cycle_idx = CYCLE_LEN - 1 - prandom_u32_max(bbr_cycle_rand);
+    bbr->cycle_idx = CYCLE_LEN - 1 - get_random_u32_below(bbr_cycle_rand);
     bbr_advance_cycle_phase(sk);    /* flip to next phase of gain cycle */
 }
 
@@ -1144,7 +1184,11 @@ static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
     .undo_cwnd  = bbr_undo_cwnd,
     .cwnd_event = bbr_cwnd_event,
     .ssthresh   = bbr_ssthresh,
-    .tso_segs_goal  = bbr_tso_segs_goal,
+#ifdef CONFIG_ZEN_INTERACTIVE
+	.tso_segs	= bbr_tso_segs,
+#else
+	.min_tso_segs	= bbr_min_tso_segs,
+#endif
     .get_info   = bbr_get_info,
     .set_state  = bbr_set_state,
 };
