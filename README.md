@@ -14,6 +14,8 @@ sudo sysctl -w net.ipv4.tcp_congestion_control=nanqinlang
 
 # 试用tsunami
 sudo sysctl -w net.ipv4.tcp_congestion_control=tsunami
+
+ss -tin|grep -E 'nanqinlang|tsunami'
 ```
 
 ## 固化到系统
@@ -26,12 +28,12 @@ sudo tee -a /etc/modules-load.d/tcp-cong.conf <<< tcp_tsunami
 然后任选nanqinlang或tsunami作为拥塞算法:
 
 ```
-sudo tee -a /etc/sysctl.conf <<< net.ipv4.tcp_congestion_control = tcp_nanqinlang
+sudo tee -a /etc/sysctl.conf <<< "net.ipv4.tcp_congestion_control = nanqinlang"
 ```
 
 或
 ```
-sudo tee -a /etc/sysctl.conf <<< net.ipv4.tcp_congestion_control = tcp_tsunami
+sudo tee -a /etc/sysctl.conf <<< "net.ipv4.tcp_congestion_control = tsunami"
 ```
 
 成功后，重启即可:
