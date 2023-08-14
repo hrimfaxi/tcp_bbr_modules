@@ -8,7 +8,7 @@ clean:
 
 dkms:
 	dkms add .
-	dkms install tcp_nanqinlang_tsunami/1.0
+	dkms install tcp_bbr_modules/1.0
 
 dkms-remove:
-	dkms remove tcp_nanqinlang_tsunami/1.0 --all
+	dkms remove tcp_bbr_modules/1.0 --all
