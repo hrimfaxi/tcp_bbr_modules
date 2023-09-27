@@ -1,5 +1,10 @@
 obj-m:=tcp_nanqinlang.o tcp_tsunami.o tcp_bbrplus.o
-KDIR := /lib/modules/$(shell uname -r)/build
+
+ifneq ($(KERNELRELEASE),)
+	KDIR ?= /lib/modules/$(KERNELRELEASE)/build
+else
+	KDIR ?= /lib/modules/$(shell uname -r)/build
+endif
 
 all:
 	make -C $(KDIR) M=$(PWD) modules
