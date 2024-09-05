@@ -126,7 +126,7 @@ struct bbr {
         extra_acked_win_rtts:5, /* age of extra_acked, in round trips */
         extra_acked_win_idx:1,  /* current index in extra_acked array */
         unused1:6;
-};
+} __packed;
 
 #define CYCLE_LEN   8   /* number of phases in a pacing gain cycle */
 
