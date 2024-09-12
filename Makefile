@@ -1,4 +1,4 @@
-obj-m:=tcp_nanqinlang.o tcp_tsunami.o tcp_bbrplus.o
+obj-m:=tcp_nanqinlang.o tcp_tsunami.o tcp_bbrplus.o tcp_brutal.o
 
 ifneq ($(KERNELRELEASE),)
 	KDIR ?= /lib/modules/$(KERNELRELEASE)/build
