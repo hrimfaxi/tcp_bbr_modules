@@ -1,4 +1,4 @@
-obj-m:=tcp_nanqinlang.o tcp_tsunami.o tcp_bbrplus.o tcp_brutal.o
+obj-m:=tcp_nanqinlang.o tcp_tsunami.o tcp_bbrplus.o tcp_brutal.o tcp_bbr1.o
 
 ifeq ($(BUILD_BBR3),1)
 	obj-m += tcp_bbr3.o
