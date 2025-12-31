@@ -1,0 +1,9 @@
+*.mod
+*.mod.c
+*.o
+*.ko
+*.cmd
+kernel_config.h
+.cache
+modules.order
+Module.symvers
