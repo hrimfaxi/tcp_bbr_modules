@@ -1185,31 +1185,10 @@ static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
 	.set_state	= bbr_set_state,
 };
 
-BTF_KFUNCS_START(tcp_bbr_check_kfunc_ids)
-BTF_ID_FLAGS(func, bbr_init)
-BTF_ID_FLAGS(func, bbr_main)
-BTF_ID_FLAGS(func, bbr_sndbuf_expand)
-BTF_ID_FLAGS(func, bbr_undo_cwnd)
-BTF_ID_FLAGS(func, bbr_cwnd_event)
-BTF_ID_FLAGS(func, bbr_ssthresh)
-BTF_ID_FLAGS(func, bbr_min_tso_segs)
-BTF_ID_FLAGS(func, bbr_set_state)
-BTF_KFUNCS_END(tcp_bbr_check_kfunc_ids)
-
-static const struct btf_kfunc_id_set tcp_bbr_kfunc_set = {
-	.owner = THIS_MODULE,
-	.set   = &tcp_bbr_check_kfunc_ids,
-};
-
 static int __init bbr_register(void)
 {
-	int ret;
-
 	BUILD_BUG_ON(sizeof(struct bbr) > ICSK_CA_PRIV_SIZE);
 
-	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_STRUCT_OPS, &tcp_bbr_kfunc_set);
-	if (ret < 0)
-		return ret;
 	return tcp_register_congestion_control(&tcp_bbr_cong_ops);
 }
 
