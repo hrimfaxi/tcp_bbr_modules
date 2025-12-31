@@ -1051,7 +1051,7 @@ static void bbr_update_model(struct sock *sk, const struct rate_sample *rs)
 	bbr_update_gains(sk);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+#ifdef TCP_CONGESTION_OPS_CONG_CONTROL_HAS_4_ARGS
 static void bbr_main(struct sock *sk, u32 ack, int flag, const struct rate_sample *rs)
 #else
 static void bbr_main(struct sock *sk, const struct rate_sample *rs)
