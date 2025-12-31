@@ -64,6 +64,8 @@
 #include <linux/random.h>
 #include <linux/win_minmax.h>
 
+#include "kernel_config.h"
+
 /* Scale factor for rate in pkt/uSec unit to avoid truncation in bandwidth
  * estimation. The rate unit ~= (1500 bytes / 1 usec / 2^24) ~= 715 bps.
  * This handles bandwidths from 0.06pps (715bps) to 256Mpps (3Tbps) in a u32.
@@ -384,7 +386,7 @@ static u32 bbr_min_tso_segs(struct sock *sk)
 	return sk->sk_pacing_rate < (bbr_min_tso_rate >> 3) ? 1 : 2;
 }
 
-#ifdef CONFIG_ZEN_INTERACTIVE
+#ifdef TCP_CONGESTION_OPS_HAS_TSO_SEGS
 /* Return the number of segments BBR would like in a TSO/GSO skb, given
  * a particular max gso size as a constraint.
  */
@@ -1189,7 +1191,7 @@ static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
     .undo_cwnd  = bbr_undo_cwnd,
     .cwnd_event = bbr_cwnd_event,
     .ssthresh   = bbr_ssthresh,
-#ifdef CONFIG_ZEN_INTERACTIVE
+#ifdef TCP_CONGESTION_OPS_HAS_TSO_SEGS
 	.tso_segs	= bbr_tso_segs,
 #else
 	.min_tso_segs	= bbr_min_tso_segs,

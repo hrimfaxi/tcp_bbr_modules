@@ -3,6 +3,8 @@
 #include <net/tcp.h>
 #include <linux/math64.h>
 
+#include "kernel_config.h"
+
 #if IS_ENABLED(CONFIG_IPV6) && LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 #include <net/transp_v6.h>
 #else

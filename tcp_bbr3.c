@@ -71,6 +71,8 @@
 #include <trace/events/tcp.h>
 #include "tcp_dctcp.h"
 
+#include "kernel_config.h"
+
 #define BBR_VERSION		3
 
 #define bbr_param(sk,name)	(bbr_ ## name)

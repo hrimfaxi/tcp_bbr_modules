@@ -1,0 +1,1 @@
+#include <net/tcp.h> KERNEL_CONFIG_EOL void test_init(void) { struct tcp_congestion_ops ops = {0}; ops.tso_segs = NULL; (void)ops; } // TCP_CONGESTION_OPS_HAS_TSO_SEGS
