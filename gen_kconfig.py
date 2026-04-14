@@ -61,25 +61,23 @@ MODULE_LICENSE("GPL");
 
     def compile_test_code(self, test_code):
         with tempfile.TemporaryDirectory() as test_dir:
-            # print(test_dir)
+            kdir = self.kernel_source_path
+
+            kdir_default = kdir if kdir else "/lib/modules/$(shell uname -r)/build"
+
             with open(os.path.join(test_dir, "Makefile"), "w") as f:
-                f.write("""pwd=$(shell pwd)
+                f.write(f"""\
+KDIR ?= {kdir_default}
+pwd=$(shell pwd)
 
 obj-m := main.o
 EXTRA_CFLAGS := -g -DDEBUG=1 -Wall -Wno-missing-declarations -Wno-missing-prototypes
 
-ifndef ($(KDIR))
-KDIR=/lib/modules/$(shell uname -r)/build
-endif
-
 all:
-	make -C $(KDIR) M=$(pwd) modules
-
-install modules_install:
-	make -C $(KDIR) M=$(pwd) modules_install
+\t$(MAKE) -C $(KDIR) M=$(pwd) modules
 
 clean:
-	make -C $(KDIR) M=$(pwd) clean
+\t$(MAKE) -C $(KDIR) M=$(pwd) clean
 """)
             with open(os.path.join(test_dir, "main.c"), "w") as f:
                 f.write(test_code)
