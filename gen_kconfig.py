@@ -54,6 +54,7 @@ static void __exit test_cleanup_module(void) {{
 module_exit(test_cleanup_module);
 
 MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Test module for gen_kconfig.py");
 """
         if Debug:
             print (test_code)
